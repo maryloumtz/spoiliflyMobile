@@ -3,6 +3,7 @@ import 'package:flutter_application_1/src/core/session_controller.dart';
 import 'package:flutter_application_1/src/pages/catalog_page.dart';
 import 'package:flutter_application_1/src/pages/home_page.dart';
 import 'package:flutter_application_1/src/pages/library_page.dart';
+import 'package:flutter_application_1/src/pages/messages_page.dart';
 import 'package:flutter_application_1/src/pages/profile_page.dart';
 
 class ShellPage extends StatefulWidget {
@@ -22,6 +23,7 @@ class _ShellPageState extends State<ShellPage> {
     final pages = [
       HomePage(sessionController: widget.sessionController),
       CatalogPage(sessionController: widget.sessionController),
+      MessagesPage(sessionController: widget.sessionController),
       LibraryPage(sessionController: widget.sessionController),
       ProfilePage(sessionController: widget.sessionController),
     ];
@@ -46,6 +48,11 @@ class _ShellPageState extends State<ShellPage> {
             icon: Icon(Icons.explore_outlined),
             selectedIcon: Icon(Icons.explore),
             label: 'Catalogue',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.chat_bubble_outline_rounded),
+            selectedIcon: Icon(Icons.chat_bubble_rounded),
+            label: 'Chat',
           ),
           NavigationDestination(
             icon: Icon(Icons.bookmark_outline),

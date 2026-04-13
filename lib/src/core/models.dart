@@ -493,3 +493,90 @@ class SpoilerDetailView {
     );
   }
 }
+
+class ChatMessage {
+  ChatMessage({
+    required this.id,
+    required this.conversationId,
+    required this.meetingId,
+    required this.senderUserId,
+    required this.content,
+    required this.createdAt,
+  });
+
+  final String id;
+  final String? conversationId;
+  final String? meetingId;
+  final String senderUserId;
+  final String content;
+  final String createdAt;
+
+  factory ChatMessage.fromJson(Map<String, dynamic> json) {
+    return ChatMessage(
+      id: json['id'] as String,
+      conversationId: json['conversationId'] as String?,
+      meetingId: json['meetingId'] as String?,
+      senderUserId: json['senderUserId'] as String,
+      content: json['content'] as String,
+      createdAt: json['createdAt'] as String,
+    );
+  }
+}
+
+class ConversationView {
+  ConversationView({
+    required this.id,
+    required this.participantUserIds,
+    required this.title,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.participants,
+    required this.lastMessage,
+  });
+
+  final String id;
+  final List<String> participantUserIds;
+  final String title;
+  final String createdAt;
+  final String updatedAt;
+  final List<SessionUser> participants;
+  final ChatMessage? lastMessage;
+
+  factory ConversationView.fromJson(Map<String, dynamic> json) {
+    return ConversationView(
+      id: json['id'] as String,
+      participantUserIds: ((json['participantUserIds'] as List?) ?? const [])
+          .map((item) => item.toString())
+          .toList(),
+      title: json['title'] as String,
+      createdAt: json['createdAt'] as String,
+      updatedAt: json['updatedAt'] as String,
+      participants: ((json['participants'] as List?) ?? const [])
+          .map((item) => SessionUser.fromJson(item as Map<String, dynamic>))
+          .toList(),
+      lastMessage: json['lastMessage'] == null
+          ? null
+          : ChatMessage.fromJson(json['lastMessage'] as Map<String, dynamic>),
+    );
+  }
+}
+
+class MessagesPayload {
+  MessagesPayload({required this.conversations, required this.messages});
+
+  final List<ConversationView> conversations;
+  final List<ChatMessage> messages;
+
+  factory MessagesPayload.fromJson(Map<String, dynamic> json) {
+    return MessagesPayload(
+      conversations: ((json['conversations'] as List?) ?? const [])
+          .map(
+            (item) => ConversationView.fromJson(item as Map<String, dynamic>),
+          )
+          .toList(),
+      messages: ((json['messages'] as List?) ?? const [])
+          .map((item) => ChatMessage.fromJson(item as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+}
