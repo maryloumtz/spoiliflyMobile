@@ -13,6 +13,15 @@ class MessagesService {
     return MessagesPayload.fromJson(payload);
   }
 
+  Future<List<UserDirectoryItem>> fetchUsers({
+    required String accessToken,
+  }) async {
+    final payload =
+        await _apiClient.get('/api/users', accessToken: accessToken)
+            as Map<String, dynamic>;
+    return UsersPayload.fromJson(payload).users;
+  }
+
   Future<void> sendMessage({
     required String accessToken,
     required String recipientEmail,

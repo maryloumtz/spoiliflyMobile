@@ -4,7 +4,6 @@ import 'package:flutter_application_1/src/core/models.dart';
 import 'package:flutter_application_1/src/core/session_controller.dart';
 import 'package:flutter_application_1/src/services/messages_service.dart';
 import 'package:flutter_application_1/src/widgets/app_scaffold.dart';
-import 'package:flutter_application_1/src/widgets/app_text_field.dart';
 import 'package:flutter_application_1/src/widgets/status_views.dart';
 
 class MessagesPage extends StatefulWidget {
@@ -32,10 +31,15 @@ class _MessagesPageState extends State<MessagesPage> {
     super.dispose();
   }
 
-  Future<MessagesPayload> _load() {
+  Future<_MessagesPageData> _load() async {
     final service = MessagesService(widget.sessionController.apiClient);
-    return service.fetchMessages(
-      accessToken: widget.sessionController.accessToken ?? '',
+    final accessToken = widget.sessionController.accessToken ?? '';
+    final messagesFuture = service.fetchMessages(accessToken: accessToken);
+    final usersFuture = service.fetchUsers(accessToken: accessToken);
+
+    return _MessagesPageData(
+      messages: await messagesFuture,
+      users: await usersFuture,
     );
   }
 
@@ -79,7 +83,7 @@ class _MessagesPageState extends State<MessagesPage> {
     return AppScaffold(
       title: 'Chat',
       subtitle: 'Conversations privées et envoi de nouveaux messages.',
-      child: FutureBuilder<MessagesPayload>(
+      child: FutureBuilder<_MessagesPageData>(
         future: _load(),
         builder: (context, snapshot) {
           if (snapshot.connectionState != ConnectionState.done) {
@@ -89,10 +93,12 @@ class _MessagesPageState extends State<MessagesPage> {
             return ErrorView(error: '${snapshot.error}');
           }
 
-          final data = snapshot.data!;
+          final pageData = snapshot.data!;
+          final messagesData = pageData.messages;
           final selectedConversationId =
-              _selectedConversationId ?? data.conversations.firstOrNull?.id;
-          final selectedMessages = data.messages
+              _selectedConversationId ??
+              messagesData.conversations.firstOrNull?.id;
+          final selectedMessages = messagesData.messages
               .where((entry) => entry.conversationId == selectedConversationId)
               .toList();
 
@@ -101,7 +107,7 @@ class _MessagesPageState extends State<MessagesPage> {
               final isWide = constraints.maxWidth >= 900;
 
               final conversationsPanel = _ConversationsPanel(
-                conversations: data.conversations,
+                conversations: messagesData.conversations,
                 selectedConversationId: selectedConversationId,
                 onSelect: (conversationId) {
                   setState(() {
@@ -117,6 +123,7 @@ class _MessagesPageState extends State<MessagesPage> {
                 isSending: _isSending,
                 sendError: _sendError,
                 selectedMessages: selectedMessages,
+                users: pageData.users,
                 currentUserId: widget.sessionController.user?.id,
                 onSubmit: () => _submit(service),
                 useExpandedMessages: isWide,
@@ -146,6 +153,13 @@ class _MessagesPageState extends State<MessagesPage> {
       ),
     );
   }
+}
+
+class _MessagesPageData {
+  _MessagesPageData({required this.messages, required this.users});
+
+  final MessagesPayload messages;
+  final List<UserDirectoryItem> users;
 }
 
 class _ConversationsPanel extends StatelessWidget {
@@ -195,6 +209,104 @@ class _ConversationsPanel extends StatelessWidget {
   }
 }
 
+class _UserSearchField extends StatefulWidget {
+  const _UserSearchField({required this.controller, required this.users});
+
+  final TextEditingController controller;
+  final List<UserDirectoryItem> users;
+
+  @override
+  State<_UserSearchField> createState() => _UserSearchFieldState();
+}
+
+class _UserSearchFieldState extends State<_UserSearchField> {
+  final _focusNode = FocusNode();
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return RawAutocomplete<UserDirectoryItem>(
+      textEditingController: widget.controller,
+      focusNode: _focusNode,
+      displayStringForOption: (option) => option.email,
+      optionsBuilder: (value) {
+        final query = value.text.trim().toLowerCase();
+        if (query.isEmpty) {
+          return widget.users.take(8);
+        }
+
+        return widget.users
+            .where((user) {
+              return user.email.toLowerCase().contains(query) ||
+                  user.displayName.toLowerCase().contains(query);
+            })
+            .take(8);
+      },
+      onSelected: (user) {
+        widget.controller.text = user.email;
+      },
+      fieldViewBuilder:
+          (context, textEditingController, focusNode, onFieldSubmitted) {
+            return TextFormField(
+              controller: textEditingController,
+              focusNode: focusNode,
+              decoration: const InputDecoration(
+                labelText: 'Destinataire',
+                hintText: 'Recherche un utilisateur',
+                prefixIcon: Icon(Icons.search_rounded),
+              ),
+              keyboardType: TextInputType.emailAddress,
+              validator: (value) {
+                if (value == null || !value.contains('@')) {
+                  return 'Email invalide';
+                }
+                return null;
+              },
+            );
+          },
+      optionsViewBuilder: (context, onSelected, options) {
+        return Align(
+          alignment: Alignment.topLeft,
+          child: Material(
+            elevation: 8,
+            borderRadius: BorderRadius.circular(8),
+            color: Theme.of(context).colorScheme.surface,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 260, maxWidth: 420),
+              child: ListView.builder(
+                padding: EdgeInsets.zero,
+                shrinkWrap: true,
+                itemCount: options.length,
+                itemBuilder: (context, index) {
+                  final user = options.elementAt(index);
+                  return ListTile(
+                    leading: CircleAvatar(
+                      backgroundImage: user.avatarUrl == null
+                          ? null
+                          : NetworkImage(user.avatarUrl!),
+                      child: user.avatarUrl == null
+                          ? Text(user.displayName.substring(0, 1))
+                          : null,
+                    ),
+                    title: Text(user.displayName),
+                    subtitle: Text(user.email),
+                    onTap: () => onSelected(user),
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
 class _MessagesContentPanel extends StatelessWidget {
   const _MessagesContentPanel({
     required this.formKey,
@@ -203,6 +315,7 @@ class _MessagesContentPanel extends StatelessWidget {
     required this.isSending,
     required this.sendError,
     required this.selectedMessages,
+    required this.users,
     required this.currentUserId,
     required this.onSubmit,
     required this.useExpandedMessages,
@@ -214,6 +327,7 @@ class _MessagesContentPanel extends StatelessWidget {
   final bool isSending;
   final String? sendError;
   final List<ChatMessage> selectedMessages;
+  final List<UserDirectoryItem> users;
   final String? currentUserId;
   final VoidCallback onSubmit;
   final bool useExpandedMessages;
@@ -233,18 +347,11 @@ class _MessagesContentPanel extends StatelessWidget {
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: 14),
-              AppTextField(
+              _UserSearchField(
                 controller: recipientController,
-                labelText: 'Destinataire',
-                hintText: 'creator@spoilifly.local',
-                prefixIcon: const Icon(Icons.alternate_email_rounded),
-                keyboardType: TextInputType.emailAddress,
-                validator: (value) {
-                  if (value == null || !value.contains('@')) {
-                    return 'Email invalide';
-                  }
-                  return null;
-                },
+                users: users
+                    .where((entry) => entry.id != currentUserId)
+                    .toList(),
               ),
               const SizedBox(height: 14),
               TextFormField(

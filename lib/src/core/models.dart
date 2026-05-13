@@ -24,6 +24,48 @@ class SessionUser {
   }
 }
 
+class UserDirectoryItem {
+  UserDirectoryItem({
+    required this.id,
+    required this.email,
+    required this.role,
+    required this.displayName,
+    required this.avatarUrl,
+  });
+
+  final String id;
+  final String email;
+  final String role;
+  final String displayName;
+  final String? avatarUrl;
+
+  factory UserDirectoryItem.fromJson(Map<String, dynamic> json) {
+    return UserDirectoryItem(
+      id: json['id'] as String,
+      email: json['email'] as String,
+      role: json['role'] as String,
+      displayName: json['displayName'] as String,
+      avatarUrl: json['avatarUrl'] as String?,
+    );
+  }
+}
+
+class UsersPayload {
+  UsersPayload({required this.users});
+
+  final List<UserDirectoryItem> users;
+
+  factory UsersPayload.fromJson(Map<String, dynamic> json) {
+    return UsersPayload(
+      users: ((json['users'] as List?) ?? const [])
+          .map(
+            (item) => UserDirectoryItem.fromJson(item as Map<String, dynamic>),
+          )
+          .toList(),
+    );
+  }
+}
+
 class AuthSession {
   AuthSession({
     required this.user,

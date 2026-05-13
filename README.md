@@ -19,6 +19,7 @@ Le projet répond au référentiel MDS "Projet Mobile Todo" :
 - [Charte graphique](docs/02-charte-graphique.md)
 - [Documentation fonctionnelle](docs/03-documentation-fonctionnelle.md)
 - [Documentation technique](docs/04-documentation-technique.md)
+- [Résumé messagerie utilisateurs](docs/05-resume-messagerie-utilisateurs.md)
 
 ## Lancer le projet
 

@@ -6,7 +6,10 @@ void main() {
   testWidgets('shows spoilifly auth screen', (tester) async {
     await tester.pumpWidget(const SpoiliflyMobileApp());
 
-    expect(find.text('Spoilifly Mobile'), findsOneWidget);
-    expect(find.text('Connexion'), findsWidgets);
+    expect(
+      find.text('Retrouve tes spoilers premium sur mobile.'),
+      findsOneWidget,
+    );
+    expect(find.text('Accès rapide'), findsOneWidget);
   });
 }
